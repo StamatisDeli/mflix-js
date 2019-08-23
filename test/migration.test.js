@@ -8,7 +8,7 @@ describe("Migration", async () => {
 
   test("migration", async () => {
     const movie = await MoviesDAO.movies.findOne({
-      _id: ObjectId("573a1391f29313caabcd8526"),
+      _id: ObjectId("573a1391f29313caabcd82da"),
       lastupdated: { $type: "date" },
     })
     expect(movie).not.toBeNull()
