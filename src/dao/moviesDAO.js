@@ -143,7 +143,7 @@ export default class MoviesDAO {
       throw new Error("Must specify cast members to filter by.")
     }
     const matchStage = { $match: filters }
-    const sortStage = { $sort: { "tomatoes.viewer.rating": -1 } }
+    const sortStage = { $sort: { "tomatoes.viewer.numReviews": -1 } }
     const countingPipeline = [matchStage, sortStage, { $count: "count" }]
     const skipStage = { $skip: moviesPerPage * page }
     const limitStage = { $limit: moviesPerPage }
@@ -199,6 +199,9 @@ export default class MoviesDAO {
       sortStage,
       // TODO Ticket: Faceted Search
       // Add the stages to queryPipeline in the correct order.
+      skipStage,
+      limitStage,
+      facetStage,
     ]
 
     try {
@@ -262,7 +265,7 @@ export default class MoviesDAO {
 
     // TODO Ticket: Paging
     // Use the cursor to only return the movies that belong on the current page
-    const displayCursor = cursor.limit(moviesPerPage)
+    const displayCursor = cursor.limit(moviesPerPage).skip(moviesPerPage * page)
 
     try {
       const moviesList = await displayCursor.toArray()
@@ -299,7 +302,28 @@ export default class MoviesDAO {
       const pipeline = [
         {
           $match: {
-            _id: ObjectId(id),
+            _id: new ObjectId(id),
+          },
+        },
+        {
+          $lookup: {
+            from: "comments",
+            let: {
+              id: "$_id",
+            },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $eq: ["$movie_id", "$$id"],
+                  },
+                },
+              },
+              {
+                $sort: { date: -1 },
+              },
+            ],
+            as: "comments",
           },
         },
       ]
